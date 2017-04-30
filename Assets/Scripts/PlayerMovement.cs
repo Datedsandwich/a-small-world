@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
+[RequireComponent(typeof(Rigidbody), typeof(Collider))]
 public class PlayerMovement : MonoBehaviour {
     public float speed = 10;
     public float sneakSpeed = 6;
@@ -9,48 +10,44 @@ public class PlayerMovement : MonoBehaviour {
     public Vector3 maxVelocityCap;
     public bool isSneaking;
     public bool isHandlingInput = true;
+    public LayerMask layerMask;
 
     private new Rigidbody rigidbody;
-    public LayerMask layerMask;
+    private new Collider collider;
+
     private Vector3 movement;
+    public float height;
     private bool hasJumped = false;
     private bool cutJumpShort = false;
     private bool isGrounded;
 
     void Awake() {
         rigidbody = GetComponent<Rigidbody>();
+        collider = GetComponent<Collider>();
     }
 
     void FixedUpdate() {
+        CheckIfGrounded();
         ApplyJumpPhysics();
+        ApplyMovementPhysics();
         CapVelocity();
     }
 
-    void Update() {
+    private void ApplyMovementPhysics() {
         if (movement != Vector3.zero) {
             rigidbody.transform.rotation = Quaternion.LookRotation(movement);
-        }
-
-        if (Physics.CheckSphere(transform.position, 1f, layerMask)) {
-            isGrounded = true;
-        } else {
-            isGrounded = false;
         }
 
         float horizontalInput = Input.GetAxis("Horizontal");
         float verticalInput = Input.GetAxis("Vertical");
         ManageMovement(horizontalInput, verticalInput);
-
-        if (Input.GetButtonDown("Jump") && isGrounded) {
-            Jump();
-        }
-
-        if (Input.GetButtonUp("Jump") && !isGrounded) {
-            CutJumpShort();
-        }
     }
 
-    public void ManageMovement(float h, float v) {
+    private void CheckIfGrounded() {
+        isGrounded = Physics.Raycast(transform.position, -transform.up, collider.bounds.extents.y, layerMask);
+    }
+
+    private void ManageMovement(float h, float v) {
         if (!isHandlingInput) {
             return;
         }
@@ -64,22 +61,14 @@ public class PlayerMovement : MonoBehaviour {
         rigidbody.MovePosition(transform.position + movement);
     }
 
-    public void Jump() {
-        hasJumped = true;
-    }
-
-    public void CutJumpShort() {
-        cutJumpShort = true;
-    }
-
     private void ApplyJumpPhysics() {
-        if (hasJumped) {
+        if (Input.GetButtonDown("Jump") && isGrounded) {
             rigidbody.velocity = new Vector3(rigidbody.velocity.x, jumpVelocity, rigidbody.velocity.z);
             hasJumped = false;
         }
 
         // Cancel the jump when the button is no longer pressed
-        if (cutJumpShort) {
+        if (Input.GetButtonUp("Jump") && !isGrounded) {
             if (rigidbody.velocity.y > jumpReduction) {
                 rigidbody.velocity = new Vector3(rigidbody.velocity.x, jumpReduction, rigidbody.velocity.z);
             }
@@ -87,7 +76,7 @@ public class PlayerMovement : MonoBehaviour {
         }
     }
 
-    void CapVelocity() {
+    private void CapVelocity() {
         Vector3 _velocity = GetComponent<Rigidbody>().velocity;
         _velocity.x = Mathf.Clamp(_velocity.x, -maxVelocityCap.x, maxVelocityCap.x);
         _velocity.y = Mathf.Clamp(_velocity.y, -maxVelocityCap.y, maxVelocityCap.y);
