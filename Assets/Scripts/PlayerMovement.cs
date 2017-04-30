@@ -3,9 +3,11 @@ using System.Collections;
 
 public class PlayerMovement : MonoBehaviour {
     public float speed = 10;
+    public float sneakSpeed = 6;
     public float jumpVelocity = 20;
     public float jumpReduction = 10;
     public Vector3 maxVelocityCap;
+    public bool isSneaking;
     public bool isHandlingInput = true;
 
     private new Rigidbody rigidbody;
@@ -58,7 +60,7 @@ public class PlayerMovement : MonoBehaviour {
 
         movement = forwardMove * v + horizontalMove * h;
 
-        movement = movement.normalized * speed * Time.deltaTime;
+        movement = isSneaking ? movement.normalized * sneakSpeed * Time.deltaTime : movement.normalized * speed * Time.deltaTime;
         rigidbody.MovePosition(transform.position + movement);
     }
 
