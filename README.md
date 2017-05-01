@@ -1,0 +1,2 @@
+# It's A Small World
+Small stealth game built around the theme "A Small World" from Ludum Dare 38. Obviously, this isn't going to be submitted to LD (considering it ended over a week ago), but it's good practice regardless.
