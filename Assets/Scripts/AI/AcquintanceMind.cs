@@ -1,8 +1,9 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.AI;
 
-[RequireComponent (typeof(Rigidbody))]
+[RequireComponent(typeof(Rigidbody), typeof(NavMeshAgent))]
 public class AcquintanceMind : Mind {
 	public enum State {
 		Idle,
@@ -10,9 +11,10 @@ public class AcquintanceMind : Mind {
 		Chasing
 	}
 
-	public float brakingSpeed;
-	public List<Transform> Waypoints = new List<Transform> ();
 	public bool canSeeTarget;
+
+	[SerializeField]
+	private List<Transform> waypoints = new List<Transform> ();
 	public State state;
 
 	[SerializeField]
@@ -20,37 +22,25 @@ public class AcquintanceMind : Mind {
 	[SerializeField]
 	private float chaseSpeed;
 
-	private new Rigidbody rigidbody;
+	private NavMeshAgent navMeshAgent;
 	private int targetIndex;
 
 	void Start () {
-		rigidbody = GetComponent<Rigidbody> ();
+		navMeshAgent = GetComponent<NavMeshAgent> ();
 	}
 
 	void Awake () {
 		targetIndex = 0;
+		SetState (State.Patrolling);
 	}
 
 	void FixedUpdate () {
 		ManageBehaviour ();
-
-		if (state == State.Idle) {
-			return;
-		}
-
-		Quaternion rotation = CalculateRotationOnlyY ();
-		// Actually turn in that direction.
-		rigidbody.MoveRotation (Quaternion.Slerp (transform.rotation, rotation, Time.deltaTime * speed));
 	}
 
 	protected override void Move () {
-		Vector3 tempPosition = transform.position;
-		tempPosition.y = target.position.y;
-		currentDistance = Vector3.Distance (tempPosition, target.position);
-
 		if (currentDistance >= PreferredDistance) {
-			shouldMove = true;
-			rigidbody.velocity = MoveTowardsTarget ();
+			MoveTowardsTarget ();
 		} else {
 			if (Util.RandomBool () && state != State.Idle) {
 				StartCoroutine (IdleWait ());
@@ -63,6 +53,8 @@ public class AcquintanceMind : Mind {
 	}
 
 	private void ManageBehaviour () {
+		currentDistance = Vector3.Distance (transform.position, target.position);
+
 		if (canSeeTarget) {
 			SetState (State.Chasing);
 		}
@@ -71,74 +63,61 @@ public class AcquintanceMind : Mind {
 			Chase ();
 		} else if (state == State.Patrolling) {
 			Patrol ();
-		} else {
-			return;
 		}
 	}
 
-	private void Patrol () {
-		if (!Waypoints.Contains (target)) {
-			FindNearestWaypoint ();
-		}
-
-		if (currentDistance <= PreferredDistance) {
-			if (targetIndex < Waypoints.Count - 1) {
-				targetIndex++;
-			} else {
-				targetIndex = 0;
-			}
-
-			target = Waypoints [targetIndex];
-		}
-		speed = patrolSpeed;
-		Move ();
-	}
-
-	private Vector3 MoveTowardsTarget () {
-		Vector3 velocity;
-
-		// Check in front of us for walls
-		if (!Physics.Raycast (transform.position + raycastOffset, transform.forward, ObstacleDistance, layerMask, QueryTriggerInteraction.Ignore)) {
-			velocity = transform.forward * speed;
-			// We don't touch Y velocity to maintain integrity of gravity.
-			return new Vector3 (velocity.x, rigidbody.velocity.y, velocity.z);
-		}
-
-		// Don't walk directly into walls
-		return new Vector3 (0f, rigidbody.velocity.y, 0f);
+	private void MoveTowardsTarget () {
+		navMeshAgent.SetDestination (target.position);
 	}
 
 	private void Chase () {
 		target = GameObject.FindGameObjectWithTag ("Player").transform;
-		speed = chaseSpeed;
+		navMeshAgent.speed = chaseSpeed;
+
+		if(!canSeeTarget) {
+			StartCoroutine (IdleWait ());
+		}
+
 		Move ();
 	}
 
-	private void Reset () {
-		canSeeTarget = false;
-		SetState (State.Patrolling);
+	private void Patrol () {
+		if (!waypoints.ConvertAll(waypoint => waypoint.position).Contains(target.position)) {
+			FindNearestWaypoint ();
+		}
+
+		if (currentDistance <= PreferredDistance) {
+			if (targetIndex < waypoints.Count - 1) {
+				targetIndex++;
+			} else {
+				targetIndex = 0;
+			}
+		}
+
+		target = waypoints [targetIndex];
+		navMeshAgent.speed = patrolSpeed;
+		Move ();
 	}
 
 	private IEnumerator IdleWait () {
 		SetState (State.Idle);
+		navMeshAgent.SetDestination (transform.position);
 		yield return new WaitForSeconds (2.0f);
 		if (canSeeTarget == false && state == State.Idle) {
-			Reset ();
+			SetState (State.Patrolling);
 		}
 	}
 
 	private void FindNearestWaypoint () {
-		// Create a temporary variable to hold the nearest waypoint index.
+		Debug.Log ("Finding nearest waypoint");
 		int nearestWaypointIndex = 0;
-		// Loop through the waypoints
-		for (int i = 0; i < Waypoints.Count; i++) {
-			// if the distance between the Blank and current iteration index is less than the distance between Blank and nearestWaypointIndex
-			// Update the nearestWaypointIndex to the current iteration index.
-			if (Vector3.Distance (transform.position, Waypoints [i].position) < Vector3.Distance (transform.position, Waypoints [nearestWaypointIndex].position)) {
+
+		for (int i = 0; i < waypoints.Count; i++) {
+			if (Vector3.Distance (transform.position, waypoints [i].position) < Vector3.Distance (transform.position, waypoints [nearestWaypointIndex].position)) {
 				nearestWaypointIndex = i;
 			}
 		}
-		// Set the new target.
-		target = Waypoints [nearestWaypointIndex];
+
+		target = waypoints [nearestWaypointIndex];
 	}
 }
