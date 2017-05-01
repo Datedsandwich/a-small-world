@@ -17,7 +17,7 @@ public class AcquintanceSight : MonoBehaviour {
 	}
 
 	void OnTriggerStay (Collider other) {
-		if (other.CompareTag ("Player")) {
+		if (other.CompareTag (Tags.player)) {
 			float angle = Vector3.Angle (head.forward, other.transform.position - transform.position);
 
 			if (angle < fieldOfViewAngle) {

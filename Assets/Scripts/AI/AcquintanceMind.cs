@@ -16,12 +16,12 @@ public class AcquintanceMind : Mind {
 
 	[SerializeField]
 	private List<Transform> waypoints = new List<Transform> ();
-	private State state;
-
 	[SerializeField]
 	private float patrolSpeed;
 	[SerializeField]
 	private float chaseSpeed;
+
+	private State state;
 	private int targetIndex;
 
 	private NavMeshAgent navMeshAgent;
