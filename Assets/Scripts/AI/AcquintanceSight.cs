@@ -17,13 +17,13 @@ public class AcquintanceSight : MonoBehaviour {
 		mind = GetComponent<AcquintanceMind> ();
 		head = transform.FindChild ("Head");
 	}
-	
-	void OnTriggerStay(Collider other) {
-		if(other.CompareTag("Player")) {
+
+	void OnTriggerStay (Collider other) {
+		if (other.CompareTag ("Player")) {
 			float angle = Vector3.Angle (head.forward, other.transform.position - transform.position);
 
-			if(angle < fieldOfViewAngle) {
-				if(!Physics.Linecast(head.position, other.transform.position, layerMask)) {
+			if (angle < fieldOfViewAngle) {
+				if (!Physics.Linecast (head.position, other.transform.position, layerMask)) {
 					mind.canSeeTarget = true;
 				}
 			} else {

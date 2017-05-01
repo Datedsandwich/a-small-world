@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.AI;
 
-[RequireComponent(typeof(Rigidbody), typeof(NavMeshAgent))]
+[RequireComponent (typeof(Rigidbody), typeof(NavMeshAgent))]
 public class AcquintanceMind : Mind {
 	public enum State {
 		Idle,
@@ -74,7 +74,7 @@ public class AcquintanceMind : Mind {
 		target = GameObject.FindGameObjectWithTag ("Player").transform;
 		navMeshAgent.speed = chaseSpeed;
 
-		if(!canSeeTarget) {
+		if (!canSeeTarget) {
 			StartCoroutine (IdleWait ());
 		}
 
@@ -82,7 +82,7 @@ public class AcquintanceMind : Mind {
 	}
 
 	private void Patrol () {
-		if (!waypoints.ConvertAll(waypoint => waypoint.position).Contains(target.position)) {
+		if (!waypoints.ConvertAll (waypoint => waypoint.position).Contains (target.position)) {
 			FindNearestWaypoint ();
 		}
 
