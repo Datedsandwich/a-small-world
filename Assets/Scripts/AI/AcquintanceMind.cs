@@ -1,69 +1,144 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
-[RequireComponent(typeof(Rigidbody))]
+[RequireComponent (typeof(Rigidbody))]
 public class AcquintanceMind : Mind {
-    public float brakingSpeed;
+	public enum State {
+		Idle,
+		Patrolling,
+		Chasing
+	}
 
-    private new Rigidbody rigidbody;
+	public float brakingSpeed;
+	public List<Transform> Waypoints = new List<Transform> ();
+	public bool canSeeTarget;
+	public State state;
 
-    void Start() {
-        rigidbody = GetComponent<Rigidbody>();
-    }
+	[SerializeField]
+	private float patrolSpeed;
+	[SerializeField]
+	private float chaseSpeed;
 
-    void FixedUpdate() {
-        Quaternion rotation = CalculateRotationOnlyY();
-        // Actually turn in that direction.
-        rigidbody.MoveRotation(Quaternion.Slerp(transform.rotation, rotation, Time.deltaTime * speed));
-        Move();
-    }
+	private new Rigidbody rigidbody;
+	private int targetIndex;
 
-    protected override void Move() {
-        Vector3 tempPosition = transform.position;
-        tempPosition.y = target.position.y;
-        currentDistance = Vector3.Distance(tempPosition, target.position);
+	void Start () {
+		rigidbody = GetComponent<Rigidbody> ();
+	}
 
-        if (currentDistance >= PreferredDistance) {
-            shouldMove = true;
-            rigidbody.velocity = GiveChase();
-        } else if (currentDistance > MinDistance) {
-            rigidbody.velocity = MaintainDistance();
-            shouldMove = false;
-        } else {
-            rigidbody.velocity = BackUp();
-            shouldMove = false;
-        }
-    }
+	void Awake () {
+		targetIndex = 0;
+	}
 
-    private Vector3 GiveChase() {
-        Vector3 velocity;
-        
-        // Check in front of us for walls
-        if (!Physics.Raycast(transform.position + raycastOffset, transform.forward, ObstacleDistance, layerMask, QueryTriggerInteraction.Ignore)) {
-            velocity = transform.forward * speed;
-            // We don't touch Y velocity to maintain integrity of gravity.
-            return new Vector3(velocity.x, rigidbody.velocity.y, velocity.z);
-        }
+	void FixedUpdate () {
+		ManageBehaviour ();
 
-        // Don't walk directly into walls
-        return new Vector3(0f, rigidbody.velocity.y, 0f);
-    }
+		if (state == State.Idle) {
+			return;
+		}
 
-    private Vector3 MaintainDistance() {
-        Vector3 targetVelocity = target.GetComponent<Rigidbody>().velocity;
-        targetVelocity.y = 0;
+		Quaternion rotation = CalculateRotationOnlyY ();
+		// Actually turn in that direction.
+		rigidbody.MoveRotation (Quaternion.Slerp (transform.rotation, rotation, Time.deltaTime * speed));
+	}
 
-        // Stop moving if target has stopped moving, otherwise continue to chase
-        if (targetVelocity.magnitude == 0f) {
-            return new Vector3(rigidbody.velocity.x * (1 - brakingSpeed / 100), rigidbody.velocity.y, rigidbody.velocity.z * (1 - brakingSpeed / 100));
-        }
+	protected override void Move () {
+		Vector3 tempPosition = transform.position;
+		tempPosition.y = target.position.y;
+		currentDistance = Vector3.Distance (tempPosition, target.position);
 
-        return new Vector3(0f, rigidbody.velocity.y, 0f);
-    }
+		if (currentDistance >= PreferredDistance) {
+			shouldMove = true;
+			rigidbody.velocity = MoveTowardsTarget ();
+		} else {
+			if (Util.RandomBool () && state != State.Idle) {
+				StartCoroutine (IdleWait ());
+			}
+		}
+	}
 
-    private Vector3 BackUp() {
-        Vector3 velocity = -transform.forward * speed;
-        // We don't touch Y velocity to maintain integrity of gravity.
-        return new Vector3(velocity.x, rigidbody.velocity.y, velocity.z);
-    }
+	public void SetState (State value) {
+		state = value;
+	}
+
+	private void ManageBehaviour () {
+		if (canSeeTarget) {
+			SetState (State.Chasing);
+		}
+
+		if (state == State.Chasing) {
+			Chase ();
+		} else if (state == State.Patrolling) {
+			Patrol ();
+		} else {
+			return;
+		}
+	}
+
+	private void Patrol () {
+		if (!Waypoints.Contains (target)) {
+			FindNearestWaypoint ();
+		}
+
+		if (currentDistance <= PreferredDistance) {
+			if (targetIndex < Waypoints.Count - 1) {
+				targetIndex++;
+			} else {
+				targetIndex = 0;
+			}
+
+			target = Waypoints [targetIndex];
+		}
+		speed = patrolSpeed;
+		Move ();
+	}
+
+	private Vector3 MoveTowardsTarget () {
+		Vector3 velocity;
+
+		// Check in front of us for walls
+		if (!Physics.Raycast (transform.position + raycastOffset, transform.forward, ObstacleDistance, layerMask, QueryTriggerInteraction.Ignore)) {
+			velocity = transform.forward * speed;
+			// We don't touch Y velocity to maintain integrity of gravity.
+			return new Vector3 (velocity.x, rigidbody.velocity.y, velocity.z);
+		}
+
+		// Don't walk directly into walls
+		return new Vector3 (0f, rigidbody.velocity.y, 0f);
+	}
+
+	private void Chase () {
+		target = GameObject.FindGameObjectWithTag ("Player").transform;
+		speed = chaseSpeed;
+		Move ();
+	}
+
+	private void Reset () {
+		canSeeTarget = false;
+		SetState (State.Patrolling);
+	}
+
+	private IEnumerator IdleWait () {
+		SetState (State.Idle);
+		yield return new WaitForSeconds (2.0f);
+		if (canSeeTarget == false && state == State.Idle) {
+			Reset ();
+		}
+	}
+
+	private void FindNearestWaypoint () {
+		// Create a temporary variable to hold the nearest waypoint index.
+		int nearestWaypointIndex = 0;
+		// Loop through the waypoints
+		for (int i = 0; i < Waypoints.Count; i++) {
+			// if the distance between the Blank and current iteration index is less than the distance between Blank and nearestWaypointIndex
+			// Update the nearestWaypointIndex to the current iteration index.
+			if (Vector3.Distance (transform.position, Waypoints [i].position) < Vector3.Distance (transform.position, Waypoints [nearestWaypointIndex].position)) {
+				nearestWaypointIndex = i;
+			}
+		}
+		// Set the new target.
+		target = Waypoints [nearestWaypointIndex];
+	}
 }
