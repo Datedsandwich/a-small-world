@@ -21,12 +21,15 @@ public class AcquintanceMind : Mind {
 	private float patrolSpeed;
 	[SerializeField]
 	private float chaseSpeed;
+	private int targetIndex;
 
 	private NavMeshAgent navMeshAgent;
-	private int targetIndex;
+	private Transform player;
+
 
 	void Start () {
 		navMeshAgent = GetComponent<NavMeshAgent> ();
+		player = GameObject.FindGameObjectWithTag ("Player").transform;
 	}
 
 	void Awake () {
@@ -71,7 +74,7 @@ public class AcquintanceMind : Mind {
 	}
 
 	private void Chase () {
-		target = GameObject.FindGameObjectWithTag ("Player").transform;
+		target = player;
 		navMeshAgent.speed = chaseSpeed;
 
 		if (!canSeeTarget) {
