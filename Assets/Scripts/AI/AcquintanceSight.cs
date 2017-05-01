@@ -5,13 +5,11 @@ using UnityEngine;
 [RequireComponent (typeof(AcquintanceMind), typeof(SphereCollider))]
 public class AcquintanceSight : MonoBehaviour {
 	public LayerMask layerMask;
-	private Transform head;
 
 	[SerializeField]
-	private float fieldOfViewAngle = 45f;
-	private bool checkingLOS;
-
+	private float fieldOfViewAngle = 110f;
 	private AcquintanceMind mind;
+	private Transform head;
 
 	void Start () {
 		mind = GetComponent<AcquintanceMind> ();
@@ -25,6 +23,7 @@ public class AcquintanceSight : MonoBehaviour {
 			if (angle < fieldOfViewAngle) {
 				if (!Physics.Linecast (head.position, other.transform.position, layerMask)) {
 					mind.canSeeTarget = true;
+					mind.lastSightingPosition = other.transform.position;
 				}
 			} else {
 				mind.canSeeTarget = false;

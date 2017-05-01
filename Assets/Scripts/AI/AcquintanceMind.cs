@@ -11,11 +11,12 @@ public class AcquintanceMind : Mind {
 		Chasing
 	}
 
+	public Vector3 lastSightingPosition;
 	public bool canSeeTarget;
 
 	[SerializeField]
 	private List<Transform> waypoints = new List<Transform> ();
-	public State state;
+	private State state;
 
 	[SerializeField]
 	private float patrolSpeed;
@@ -24,12 +25,9 @@ public class AcquintanceMind : Mind {
 	private int targetIndex;
 
 	private NavMeshAgent navMeshAgent;
-	private Transform player;
-
 
 	void Start () {
 		navMeshAgent = GetComponent<NavMeshAgent> ();
-		player = GameObject.FindGameObjectWithTag ("Player").transform;
 	}
 
 	void Awake () {
@@ -42,7 +40,7 @@ public class AcquintanceMind : Mind {
 	}
 
 	protected override void Move () {
-		if (currentDistance >= PreferredDistance) {
+		if (currentDistance >= preferredDistance) {
 			MoveTowardsTarget ();
 		} else {
 			if (Util.RandomBool () && state != State.Idle) {
@@ -56,7 +54,7 @@ public class AcquintanceMind : Mind {
 	}
 
 	private void ManageBehaviour () {
-		currentDistance = Vector3.Distance (transform.position, target.position);
+		currentDistance = Vector3.Distance (transform.position, target);
 
 		if (canSeeTarget) {
 			SetState (State.Chasing);
@@ -70,26 +68,28 @@ public class AcquintanceMind : Mind {
 	}
 
 	private void MoveTowardsTarget () {
-		navMeshAgent.SetDestination (target.position);
+		navMeshAgent.SetDestination (target);
 	}
 
 	private void Chase () {
-		target = player;
+		target = lastSightingPosition;
 		navMeshAgent.speed = chaseSpeed;
 
-		if (!canSeeTarget) {
-			StartCoroutine (IdleWait ());
+		if(!canSeeTarget) {
+			if (currentDistance <= preferredDistance) {
+				StartCoroutine (IdleWait ());
+			}
 		}
 
 		Move ();
 	}
 
 	private void Patrol () {
-		if (!waypoints.ConvertAll (waypoint => waypoint.position).Contains (target.position)) {
+		if (!waypoints.ConvertAll (waypoint => waypoint.position).Contains (target)) {
 			FindNearestWaypoint ();
 		}
 
-		if (currentDistance <= PreferredDistance) {
+		if (currentDistance <= preferredDistance) {
 			if (targetIndex < waypoints.Count - 1) {
 				targetIndex++;
 			} else {
@@ -97,7 +97,7 @@ public class AcquintanceMind : Mind {
 			}
 		}
 
-		target = waypoints [targetIndex];
+		target = waypoints [targetIndex].position;
 		navMeshAgent.speed = patrolSpeed;
 		Move ();
 	}
@@ -112,7 +112,6 @@ public class AcquintanceMind : Mind {
 	}
 
 	private void FindNearestWaypoint () {
-		Debug.Log ("Finding nearest waypoint");
 		int nearestWaypointIndex = 0;
 
 		for (int i = 0; i < waypoints.Count; i++) {
@@ -121,6 +120,6 @@ public class AcquintanceMind : Mind {
 			}
 		}
 
-		target = waypoints [nearestWaypointIndex];
+		target = waypoints [nearestWaypointIndex].position;
 	}
 }
