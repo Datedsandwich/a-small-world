@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class EnemyAttackController : MonoBehaviour {
 	public float damage;
+	public GameObject attackText;
 
 	public void Attack(PlayerHealth health) {
 		health.Damage (damage);
@@ -15,7 +16,14 @@ public class EnemyAttackController : MonoBehaviour {
 
 			if(health) {
 				Attack (health);
+				StartCoroutine (ShowText ());
 			}
 		}
+	}
+
+	private IEnumerator ShowText() {
+		attackText.SetActive (true);
+		yield return new WaitForSeconds (3.0f);
+		attackText.SetActive (false);
 	}
 }

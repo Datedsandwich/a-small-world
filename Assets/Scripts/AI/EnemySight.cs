@@ -17,7 +17,8 @@ public class EnemySight : MonoBehaviour {
 			float angle = Vector3.Angle (transform.forward, other.transform.position - transform.position);
 
 			if (angle <= fieldOfViewAngle) {
-				if (!Physics.Linecast (transform.position, other.transform.position, layerMask)) {
+				Transform head = other.transform.FindChild ("Head");
+				if (!Physics.Linecast (transform.position, head.position, layerMask)) {
 					CanSeeTarget ();
 					lastSightingPosition = other.transform.position;
 				} else {
