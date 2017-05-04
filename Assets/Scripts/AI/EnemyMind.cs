@@ -11,9 +11,6 @@ public class EnemyMind : Mind {
 		Chasing
 	}
 
-	public Vector3 lastSightingPosition;
-	public bool canSeeTarget;
-
 	[SerializeField]
 	private List<Transform> waypoints = new List<Transform> ();
 	[SerializeField]
@@ -21,15 +18,17 @@ public class EnemyMind : Mind {
 	[SerializeField]
 	private float chaseSpeed;
 
-	private State state;
 	private bool isLookingAround = false;
 	private bool lookingLeft = false;
 	private int targetIndex;
 
+	private State state;
+	private EnemySight sight;
 	private NavMeshAgent navMeshAgent;
 	private new Rigidbody rigidbody;
 
 	void Start () {
+		sight = GetComponentInChildren<EnemySight> ();
 		navMeshAgent = GetComponent<NavMeshAgent> ();
 		rigidbody = GetComponent<Rigidbody> ();
 	}
@@ -60,7 +59,7 @@ public class EnemyMind : Mind {
 	private void ManageBehaviour () {
 		currentDistance = Vector3.Distance (transform.position, target);
 
-		if (canSeeTarget) {
+		if (sight.canSeeTarget) {
 			SetState (State.Chasing);
 		}
 
@@ -70,7 +69,7 @@ public class EnemyMind : Mind {
 			Patrol ();
 		}
 
-		if(isLookingAround && !canSeeTarget) {
+		if(isLookingAround && !sight.canSeeTarget) {
 			if(lookingLeft) {
 				LookLeft ();
 			} else {
@@ -84,10 +83,10 @@ public class EnemyMind : Mind {
 	}
 
 	private void Chase () {
-		target = lastSightingPosition;
+		target = sight.lastSightingPosition;
 		navMeshAgent.speed = chaseSpeed;
 
-		if(!canSeeTarget) {
+		if(!sight.canSeeTarget) {
 			if (currentDistance <= preferredDistance) {
 				StartCoroutine (LookAround ());
 			}
@@ -119,7 +118,7 @@ public class EnemyMind : Mind {
 		navMeshAgent.SetDestination (transform.position);
 		StartCoroutine(LookAround ());
 		yield return new WaitForSeconds (2.0f);
-		if (canSeeTarget == false && state == State.Idle) {
+		if (sight.canSeeTarget == false && state == State.Idle) {
 			SetState (State.Patrolling);
 		}
 	}

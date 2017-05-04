@@ -2,28 +2,24 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-[RequireComponent (typeof(EnemyMind), typeof(SphereCollider))]
+[RequireComponent (typeof(SphereCollider))]
 public class EnemySight : MonoBehaviour {
 	public LayerMask layerMask;
+	public bool canSeeTarget;
+	public Vector3 lastSightingPosition;
+
 
 	[SerializeField]
 	private float fieldOfViewAngle = 110f;
-	private EnemyMind mind;
-	private Transform head;
-
-	void Start () {
-		mind = GetComponent<EnemyMind> ();
-		head = transform.FindChild ("Head");
-	}
 
 	void OnTriggerStay (Collider other) {
 		if (other.CompareTag (Tags.player)) {
-			float angle = Vector3.Angle (head.forward, other.transform.position - transform.position);
+			float angle = Vector3.Angle (transform.forward, other.transform.position - transform.position);
 
 			if (angle <= fieldOfViewAngle) {
-				if (!Physics.Linecast (head.position, other.transform.position, layerMask)) {
+				if (!Physics.Linecast (transform.position, other.transform.position, layerMask)) {
 					CanSeeTarget ();
-					mind.lastSightingPosition = other.transform.position;
+					lastSightingPosition = other.transform.position;
 				} else {
 					CannotSeeTarget ();
 				}
@@ -35,15 +31,15 @@ public class EnemySight : MonoBehaviour {
 
 	void OnTriggerExit(Collider other) {
 		if(other.CompareTag(Tags.player)) {
-			mind.canSeeTarget = false;
+			CannotSeeTarget ();
 		}
 	}
 
 	private void CanSeeTarget() {
-		mind.canSeeTarget = true;
+		canSeeTarget = true;
 	}
 
 	private void CannotSeeTarget() {
-		mind.canSeeTarget = false;
+		canSeeTarget = false;
 	}
 }

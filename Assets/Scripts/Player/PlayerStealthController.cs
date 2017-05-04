@@ -4,16 +4,11 @@ using UnityEngine;
 
 [RequireComponent(typeof(PlayerMovement))]
 public class PlayerStealthController : MonoBehaviour {
-    private PlayerMovement playerMovement;
+	public bool isSneaking;
 
-	void Start () {
-        playerMovement = GetComponent<PlayerMovement>();
-	}
-	
 	void FixedUpdate () {
-        bool isSneaking = Input.GetButton("Sneak");
         // For now, only sets this bool, but this class will be responsible for making the player quiet
-        playerMovement.isSneaking = isSneaking;
+		isSneaking = Input.GetButton("Sneak");
 
         // Temporary visual for sneaking, as I have no models or animation yet.
         if(isSneaking) {
