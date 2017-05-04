@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine.AI;
 
 [RequireComponent (typeof(Rigidbody), typeof(NavMeshAgent))]
-public class AcquintanceMind : Mind {
+public class EnemyMind : Mind {
 	public enum State {
 		Idle,
 		Patrolling,
