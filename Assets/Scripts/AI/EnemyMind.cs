@@ -22,12 +22,16 @@ public class EnemyMind : Mind {
 	private float chaseSpeed;
 
 	private State state;
+	private bool isLookingAround = false;
+	private bool lookingLeft = false;
 	private int targetIndex;
 
 	private NavMeshAgent navMeshAgent;
+	private new Rigidbody rigidbody;
 
 	void Start () {
 		navMeshAgent = GetComponent<NavMeshAgent> ();
+		rigidbody = GetComponent<Rigidbody> ();
 	}
 
 	void Awake () {
@@ -65,6 +69,14 @@ public class EnemyMind : Mind {
 		} else if (state == State.Patrolling) {
 			Patrol ();
 		}
+
+		if(isLookingAround && !canSeeTarget) {
+			if(lookingLeft) {
+				LookLeft ();
+			} else {
+				LookRight ();
+			}
+		}
 	}
 
 	private void MoveTowardsTarget () {
@@ -77,7 +89,7 @@ public class EnemyMind : Mind {
 
 		if(!canSeeTarget) {
 			if (currentDistance <= preferredDistance) {
-				StartCoroutine (IdleWait ());
+				StartCoroutine (LookAround ());
 			}
 		}
 
@@ -105,10 +117,28 @@ public class EnemyMind : Mind {
 	private IEnumerator IdleWait () {
 		SetState (State.Idle);
 		navMeshAgent.SetDestination (transform.position);
+		StartCoroutine(LookAround ());
 		yield return new WaitForSeconds (2.0f);
 		if (canSeeTarget == false && state == State.Idle) {
 			SetState (State.Patrolling);
 		}
+	}
+
+	private IEnumerator LookAround() {
+		isLookingAround = true;
+		lookingLeft = true;
+		yield return new WaitForSeconds (0.5f);
+		lookingLeft = false;
+		yield return new WaitForSeconds (1.0f);
+		isLookingAround = false;
+	}
+
+	private void LookLeft() {
+		rigidbody.MoveRotation (Quaternion.LookRotation (Vector3.Slerp (transform.forward, -transform.right, Time.deltaTime * 2f)));
+	}
+
+	private void LookRight() {
+		rigidbody.MoveRotation (Quaternion.LookRotation (Vector3.Slerp (transform.forward, transform.right, Time.deltaTime * 2f)));
 	}
 
 	private void FindNearestWaypoint () {
